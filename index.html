@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employee Attendance</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+    body {
+      background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .panel {
+      background: #ffffff;
+      padding: 30px 40px;
+      border-radius: 20px;
+      box-shadow: 0 15px 25px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+    select, input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+    }
+    select, input {
+      background: #f1f1f1;
+    }
+    button {
+      background: #4e54c8;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #565dff;
+    }
+    #status {
+      margin-top: 15px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h2>📋 Data Entry Attendance Panel</h2>
+
+    <select id="nameSelect">
+      <option value=""> Select Employee</option>
+    </select>
+
+    <input type="text" id="empId" placeholder="🆔 Employee ID" readonly>
+
+    <button onclick="markAttendance('Check In')"> Check In</button>
+    <button onclick="markAttendance('Check Out')"> Check Out</button>
+
+    <p id="status"></p>
+  </div>
+
+  <script>
+    const scriptURL = "https://script.google.com/macros/s/AKfycbx_rT0IvE30PSmuaZW1v8YA2PiCHvxEL53d3N7T_FYRiDHQ8Jr81M_T09-bb4-R3N5X/exec";
+
+const employees = {
+  "Minhazur Rahman": "CL-84088",
+  "Pranab Chandra Das": "CL-84001",
+  "Mohammad Saiful Islam Saon": "CL-82026",
+  "Bipul Chandra Roy": "CL-84086",
+  "kazi shahamat hossain": "CL-84120",
+  "Syed Akif Mowla": "CL-84117",
+  "Kazi Atraful Islam Topu": "CL-84118",
+  "Md Nawaz Sharif Antor": "CL-84124",
+  "faysal hossain siam": "CL-84125",
+  "Aiub Ahmed": "CL-84101"
+};
+
+
+    const nameSelect = document.getElementById("nameSelect");
+    for (const name in employees) {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      nameSelect.appendChild(option);
+    }
+
+    nameSelect.addEventListener("change", () => {
+      const selected = nameSelect.value;
+      document.getElementById("empId").value = employees[selected] || "";
+    });
+
+    function markAttendance(action) {
+      const name = nameSelect.value;
+      const employeeId = document.getElementById("empId").value;
+      const status = document.getElementById("status");
+
+      if (!name || !employeeId) {
+        status.textContent = "⚠️ Please select a name.";
+        status.style.color = "darkred";
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        let locationName = `${lat}, ${lng}`;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+          const data = await res.json();
+          locationName = data.display_name;
+        } catch (err) {
+          console.warn("Reverse geocoding failed");
+        }
+
+        const payload = {
+          name,
+          employeeId,
+          action,
+          lat,
+          lng,
+          locationName
+        };
+
+        fetch(scriptURL, {
+          method: "POST",
+          body: JSON.stringify(payload),
+          headers: { "Content-Type": "application/json" }
+        })
+        .then(res => res.text())
+        .then(() => {
+          status.textContent = `✅ ${action} successful`;
+          status.style.color = "green";
+        })
+        .catch(() => {
+          status.textContent = "❌ Failed to submit attendance";
+          status.style.color = "red";
+        });
+
+      }, () => {
+        status.textContent = "❌ Please enable location access";
+        status.style.color = "darkred";
+      });
+    }
+  </script>
+</body>
+</html>
